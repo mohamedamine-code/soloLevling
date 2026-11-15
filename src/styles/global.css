@@ -1,0 +1,116 @@
+@import 'tailwindcss';
+
+/*
+ * soloLeving design system — "Calm Productivity".
+ * Light and dark palettes are declared as raw CSS variables (--bg, --surface, ...),
+ * then mapped to Tailwind theme tokens via @theme inline.
+ * Documentation: docs/ui-guidelines.md
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --bg: #f7f8f6;
+  --sidebar: #ffffff;
+  --surface: #ffffff;
+  --elevated: #f0f3f0;
+  --primary: #18885c;
+  --primary-soft: #62b78f;
+  --on-primary: #ffffff;
+  --text: #202722;
+  --muted: #747e77;
+  --line: #e6eae6;
+  --danger: #d5484f;
+  --warning: #d99a2b;
+}
+
+.dark {
+  --bg: #111318;
+  --sidebar: #171a21;
+  --surface: #1d222b;
+  --elevated: #252b35;
+  --primary: #32b77a;
+  --primary-soft: #80cfa7;
+  --on-primary: #0e1512;
+  --text: #f4f6f5;
+  --muted: #9ca6a1;
+  --line: #2a3038;
+  --danger: #e5484f;
+  --warning: #f5a524;
+}
+
+@theme inline {
+  --color-background: var(--bg);
+  --color-sidebar: var(--sidebar);
+  --color-surface: var(--surface);
+  --color-elevated: var(--elevated);
+  --color-primary: var(--primary);
+  --color-primary-soft: var(--primary-soft);
+  --color-on-primary: var(--on-primary);
+  --color-foreground: var(--text);
+  --color-muted: var(--muted);
+  --color-border: var(--line);
+  --color-danger: var(--danger);
+  --color-warning: var(--warning);
+
+  --font-sans:
+    'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+
+  --radius-card: 0.75rem;
+}
+
+/* Base layer */
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  /* Inputs and notes should still allow text selection */
+  input,
+  textarea {
+    user-select: text;
+  }
+
+  ::selection {
+    background-color: color-mix(in srgb, var(--primary) 30%, transparent);
+  }
+}
+
+/* Dialog animations */
+@keyframes dialog-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Respect OS reduced-motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
