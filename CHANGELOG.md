@@ -2,6 +2,15 @@
 
 All notable changes. Each entry links to its modification README.
 
+## 2026-11-15 (Phase 7b)
+
+### Added
+- Windows NSIS installer: `npm run dist` builds `dist/sololeving-<version>-setup.exe`
+  (better-sqlite3 rebuilt for the Electron ABI; packaged exe smoke-tested).
+- electron-builder: `win.icon`, uninstall display name, shortcut name.
+
+---
+
 ## 2026-11-15 (Phase 7a)
 
 ### Added

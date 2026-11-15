@@ -76,9 +76,10 @@ npm run format     # Prettier
 
 ## Build (Windows installer)
 
-`electron-builder.yml` is configured for a Windows NSIS installer. Icon assets and the
-production build pipeline are scheduled for Phase 7; until then `npm run build` produces
-the bundled application output without an installer.
+`npm run dist` produces the Windows NSIS installer at
+`dist/sololeving-<version>-setup.exe` (electron-vite build + electron-builder,
+better-sqlite3 is rebuilt for the Electron ABI automatically). Regenerate the
+icon assets first with `node scripts/generate-icons.mjs` if `build/` is empty.
 
 ## Database location
 

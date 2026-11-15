@@ -84,9 +84,9 @@ None — no half-finished work in the tree.
 
 | Phase | Feature | Notes |
 | --- | --- | --- |
-| 7 | Installer | icons exist (build/icon.*); verify `electron-builder` NSIS output |
 | 7 | Renderer component tests + e2e decision | RTL installed, unused |
 | — | Windows startup | `app.setLoginItemSettings` + Settings toggle (Phase 6 leftover) |
+| — | User verification | Install `dist/sololeving-0.1.0-setup.exe` and try backup/restore end to end |
 
 ## Current Architecture
 
@@ -123,6 +123,7 @@ None — no half-finished work in the tree.
 
 ## Recent Modifications
 
+- [2026-11-15 — Windows installer (Phase 7b)](../changes/2026-11-15-installer/README.md)
 - [2026-11-15 — Database backup & restore (Phase 7a)](../changes/2026-11-15-backup-restore/README.md)
 - [2026-11-15 — Hygiene fixes (live-refresh, rollover, URL validation)](../changes/2026-11-15-hygiene-fixes/README.md)
 - [2026-11-15 — System tray & daily notifications (Phase 6)](../changes/2026-11-15-tray-notifications/README.md)

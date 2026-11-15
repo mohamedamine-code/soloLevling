@@ -11,13 +11,15 @@ extraResources:
     to: icon.ico
 asar: true
 win:
+  icon: build/icon.ico
   target:
     - target: nsis
       arch:
         - x64
-  # Icon: build/icon.ico is added in the production phase (Phase 7).
 nsis:
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true
   artifactName: ${name}-${version}-setup.${ext}
+  uninstallDisplayName: soloLeving
+  shortcutName: soloLeving
