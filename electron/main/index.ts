@@ -6,7 +6,7 @@ import {
 } from './windows/main-window'
 import { isSafeExternalUrl } from './windows/external-url'
 import { showWidget, widgetVisibilitySetting, setWidgetVisible, isWidgetVisible } from './windows/widget-window'
-import { initDatabase } from './db'
+import { initDatabase, MIGRATIONS } from './db'
 import { HabitRepository } from './db/repositories/habit-repository'
 import { SettingsRepository } from './db/repositories/settings-repository'
 import { TrackingRepository } from './db/repositories/tracking-repository'
@@ -14,6 +14,7 @@ import { RoutineRepository } from './db/repositories/routine-repository'
 import { HabitService } from './services/habit-service'
 import { TrackingService } from './services/tracking-service'
 import { RoutineService } from './services/routine-service'
+import { BackupService } from './services/backup-service'
 import { registerIpcHandlers } from './ipc/register-handlers'
 import { createTray, destroyTray, refreshTrayMenu } from './tray/tray'
 import { startReminderService } from './notifications/reminder-service'
@@ -34,41 +35,102 @@ app.setName('soloLeving')
 /** Set to true when the user quits via the tray, so close handlers let go. */
 let quitting = false
 
-app.whenReady().then(() => {
-  // Database first: IPC handlers depend on the repositories.
-  const db = initDatabase(app.getPath('userData'))
+/** Everything derived from the open database; rebuilt after a restore. */
+interface ServiceGraph {
+  db: ReturnType<typeof initDatabase>
+  habitService: HabitService
+  trackingService: TrackingService
+  routineService: RoutineService
+  settings: SettingsRepository
+}
+
+/** Opens the database and wires repositories + services around it. */
+function buildServiceGraph(userDataPath: string): ServiceGraph {
+  const db = initDatabase(userDataPath)
   const habitRepository = new HabitRepository(db)
   const trackingRepository = new TrackingRepository(db)
   const routineRepository = new RoutineRepository(db, habitRepository)
-  const habitService = new HabitService(habitRepository)
-  const trackingService = new TrackingService(habitRepository, trackingRepository)
-  const routineService = new RoutineService(habitRepository, routineRepository)
-  const settings = new SettingsRepository(db)
+  return {
+    db,
+    habitService: new HabitService(habitRepository),
+    trackingService: new TrackingService(habitRepository, trackingRepository),
+    routineService: new RoutineService(habitRepository, routineRepository),
+    settings: new SettingsRepository(db)
+  }
+}
+
+/** How many migrations a fresh open applies on top of `beforeVersion`. */
+function migrationsAppliedSince(beforeVersion: number): number {
+  return Math.max(...MIGRATIONS.map((migration) => migration.version)) - beforeVersion
+}
+
+app.whenReady().then(() => {
+  const userDataPath = app.getPath('userData')
+  let graph = buildServiceGraph(userDataPath)
+
+  const backupService = new BackupService({
+    userDataPath,
+    dbFileName: 'sololeving.db'
+  })
+  // The live connection changes after every restore; the holder stays stable.
+  const dbHolder = { get: () => graph.db }
 
   const mainWindowOptions: MainWindowOptions = {
     interceptClose: () => {
       // Close-to-tray only while the app is not quitting (tray Quit lets go).
-      return !quitting && settings.get('window.closeToTray') === '1'
+      return !quitting && graph.settings.get('window.closeToTray') === '1'
     }
   }
 
-  registerIpcHandlers({
-    habitService,
-    trackingService,
-    routineService,
-    settings,
-    widget: {
-      // The widget's "open main window" button: focus or recreate the main window.
-      openMainWindow: () => {
-        focusOrCreateMainWindow()
+  function registerCurrentHandlers(): void {
+    registerIpcHandlers({
+      habitService: graph.habitService,
+      trackingService: graph.trackingService,
+      routineService: graph.routineService,
+      settings: graph.settings,
+      widget: {
+        // The widget's "open main window" button: focus or recreate the main window.
+        openMainWindow: () => {
+          focusOrCreateMainWindow()
+        }
+      },
+      backup: {
+        backupService,
+        dbHolder,
+        afterRestore: () => {
+          const backupVersion = rebuildAfterRestore()
+          return migrationsAppliedSince(backupVersion)
+        }
+      }
+    })
+  }
+
+  /**
+   * Rebuilds the service graph around the swapped-in database file,
+   * re-registers handlers, reloads every renderer, and returns the schema
+   * version the restored file was at BEFORE migrations were applied.
+   */
+  function rebuildAfterRestore(): number {
+    const restoredVersion = backupService.maxMigrationVersion(backupService.liveDbPath)
+    graph = buildServiceGraph(userDataPath)
+    registerCurrentHandlers()
+    mainWindowOptions.interceptClose = () => {
+      return !quitting && graph.settings.get('window.closeToTray') === '1'
+    }
+    for (const window of BrowserWindow.getAllWindows()) {
+      if (!window.isDestroyed()) {
+        window.webContents.reload()
       }
     }
-  })
+    return restoredVersion
+  }
+
+  registerCurrentHandlers()
   createMainWindow(mainWindowOptions)
 
   // Widget last: it may present on top of the freshly created main window.
-  if (widgetVisibilitySetting(settings)) {
-    showWidget(settings)
+  if (widgetVisibilitySetting(graph.settings)) {
+    showWidget(graph.settings)
   }
 
   // Tray: makes the app a background resident and provides the real exit.
@@ -77,7 +139,7 @@ app.whenReady().then(() => {
       focusOrCreateMainWindow()
     },
     toggleWidget: () => {
-      setWidgetVisible(!isWidgetVisible(), settings)
+      setWidgetVisible(!isWidgetVisible(), graph.settings)
       refreshTrayMenu()
     },
     quit: () => {
@@ -87,9 +149,15 @@ app.whenReady().then(() => {
   })
 
   // Daily habit reminders (Windows toasts), configured via the settings table.
+  // Getters keep the reminder service pointed at the CURRENT service graph —
+  // a database restore rebuilds it, and stale references would hit a closed db.
   startReminderService({
-    settings,
-    trackingService,
+    get settings() {
+      return graph.settings
+    },
+    get trackingService() {
+      return graph.trackingService
+    },
     openMainWindow: () => {
       focusOrCreateMainWindow()
     }

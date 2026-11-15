@@ -2,6 +2,21 @@
 
 All notable changes. Each entry links to its modification README.
 
+## 2026-11-15 (Phase 7a)
+
+### Added
+- Database backup & restore in Settings: atomic online-backup export via a
+  save dialog; validated restore with destructive confirmation, a
+  `.pre-restore` safety copy, atomic file swap, service-graph rebuild, and
+  renderer reload. Backups from newer app versions are rejected; older
+  schemas are migrated up on reopen.
+- IPC: `backup:export`, `backup:import` (see [ipc-contracts](docs/ipc-contracts.md)).
+
+Documentation:
+- [Backup & restore](docs/changes/2026-11-15-backup-restore/README.md)
+
+---
+
 ## 2026-11-15 (Phase 6.x hygiene)
 
 ### Fixed

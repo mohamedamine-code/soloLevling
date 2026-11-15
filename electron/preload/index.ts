@@ -60,6 +60,10 @@ const api: SoloLevingApi = {
   notifications: {
     test: () => ipcRenderer.invoke(IPC_CHANNELS.NotificationsTest)
   },
+  backup: {
+    export: () => ipcRenderer.invoke(IPC_CHANNELS.BackupExport),
+    import: () => ipcRenderer.invoke(IPC_CHANNELS.BackupImport)
+  },
   settings: {
     get: (key) => ipcRenderer.invoke(IPC_CHANNELS.SettingsGet, key),
     set: (key, value) => ipcRenderer.invoke(IPC_CHANNELS.SettingsSet, key, value)

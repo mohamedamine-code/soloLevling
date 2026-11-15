@@ -1,6 +1,8 @@
 import type {
   ActiveTimerSession,
   AppInfo,
+  BackupExportResult,
+  BackupImportResult,
   DaySnapshot,
   Habit,
   HabitCreateInput,
@@ -77,6 +79,20 @@ export interface SoloLevingApi {
   notifications: {
     /** Shows an immediate test notification; rejects if notifications are unsupported. */
     test(): Promise<void>
+  }
+  backup: {
+    /**
+     * Opens a save dialog and writes an atomic SQLite backup of the whole
+     * database. Resolves null when the user cancels the dialog.
+     */
+    export(): Promise<BackupExportResult | null>
+    /**
+     * Opens an open dialog, validates the selected backup, and (after the
+     * renderer's confirmation) replaces the live database with it. Resolves
+     * null when the user cancels. Rejects with a ServiceError message when
+     * the file is not a valid soloLeving backup.
+     */
+    import(): Promise<BackupImportResult | null>
   }
   settings: {
     get(key: string): Promise<string | null>

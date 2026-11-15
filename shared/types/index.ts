@@ -227,3 +227,14 @@ export interface RangeAnalytics {
   /** Mean of non-null day percents; null when no day counted. */
   averagePercent: number | null
 }
+
+export interface BackupExportResult {
+  /** Absolute path the backup was written to. */
+  path: string
+  sizeBytes: number
+}
+
+export interface BackupImportResult {
+  /** Number of migrations applied on top of the restored file. */
+  migrationsApplied: number
+}

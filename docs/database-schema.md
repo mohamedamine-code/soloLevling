@@ -129,9 +129,19 @@ disappear from routines automatically.
 ## Retention & backup
 
 No automatic deletion of user data. Deleting a habit cascades to its schedule,
-entries, overrides, and timer sessions. Backup/restore (Phase 7) will copy the DB
-file atomically (temp file + rename) after validating the backup before overwriting
-live data.
+entries, overrides, and timer sessions.
+
+Backup/restore (implemented, Phase 7a) lives in
+`electron/main/services/backup-service.ts`:
+
+- **Export** uses better-sqlite3's online backup API (`db.backup(path)`) — a
+  consistent snapshot even while the live connection is open.
+- **Restore** validates the candidate file first (integrity check, required
+  tables, migration versions ≤ current schema), keeps a one-generation safety
+  copy at `sololeving.db.pre-restore`, then swaps the file atomically (temp
+  file + rename, WAL/SHM sidecars removed). The service graph is rebuilt and
+  the renderer reloads afterwards; missing migrations are applied on reopen.
+  Backups from newer app versions are rejected.
 
 ## Testing
 

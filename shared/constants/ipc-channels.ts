@@ -34,6 +34,8 @@ export const IPC_CHANNELS = {
   WidgetHide: 'widget:hide',
   WidgetOpenMain: 'widget:open-main',
   NotificationsTest: 'notifications:test',
+  BackupExport: 'backup:export',
+  BackupImport: 'backup:import',
   SettingsGet: 'settings:get',
   SettingsSet: 'settings:set'
 } as const

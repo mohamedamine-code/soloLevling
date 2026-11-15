@@ -1,6 +1,9 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain } from 'electron'
+import type { DatabaseInstance } from '../db/connection'
 import { IPC_CHANNELS } from '@shared/constants/ipc-channels'
 import type {
+  BackupExportResult,
+  BackupImportResult,
   DaySnapshot,
   HabitCreateInput,
   HabitUpdateInput,
@@ -13,6 +16,7 @@ import type { HabitService } from '../services/habit-service'
 import type { TrackingService } from '../services/tracking-service'
 import type { RoutineService } from '../services/routine-service'
 import type { SettingsRepository } from '../db/repositories/settings-repository'
+import type { BackupService } from '../services/backup-service'
 import { hideWidget, setWidgetVisible } from '../windows/widget-window'
 import { sendTestNotification } from '../notifications/reminder-service'
 
@@ -21,18 +25,34 @@ export interface WidgetIpcDependencies {
   openMainWindow: () => void
 }
 
+export interface BackupIpcDependencies {
+  backupService: BackupService
+  /** Current live database connection (changes after each restore). */
+  dbHolder: { get: () => DatabaseInstance }
+  /**
+   * Called after the backup file was swapped in: the caller rebuilds the
+   * service graph, re-registers handlers, and reloads the renderers.
+   * Returns the number of migrations applied on top of the backup.
+   */
+  afterRestore: () => number
+}
+
 export interface IpcDependencies {
   habitService: HabitService
   trackingService: TrackingService
   routineService: RoutineService
   settings: SettingsRepository
   widget: WidgetIpcDependencies
+  backup: BackupIpcDependencies
 }
 
 /**
  * Central place to register all IPC handlers.
  * Each handler must validate inputs and only expose what the renderer needs.
  * Validation happens inside the services (Zod) — see docs/ipc-contracts.md.
+ *
+ * Registration is IDEMPOTENT: every channel is unregistered first so the
+ * module can be called again after a database restore rebuilds the services.
  */
 
 /**
@@ -55,7 +75,12 @@ function trackAndBroadcast(mutation: () => DaySnapshot): DaySnapshot {
 }
 
 export function registerIpcHandlers(deps: IpcDependencies): void {
-  const { habitService, trackingService, routineService, settings, widget } = deps
+  const { habitService, trackingService, routineService, settings, widget, backup } = deps
+
+  // Idempotent registration: drop any previous handler for every channel.
+  for (const channel of Object.values(IPC_CHANNELS)) {
+    ipcMain.removeHandler(channel)
+  }
 
   /** Habit list changes can affect what counts today — re-broadcast. */
   const broadcastTodaySnapshot = (): void => {
@@ -182,6 +207,42 @@ export function registerIpcHandlers(deps: IpcDependencies): void {
   ipcMain.handle(IPC_CHANNELS.WidgetOpenMain, () => widget.openMainWindow())
 
   ipcMain.handle(IPC_CHANNELS.NotificationsTest, () => sendTestNotification())
+
+  ipcMain.handle(IPC_CHANNELS.BackupExport, async (): Promise<BackupExportResult | null> => {
+    const result = await dialog.showSaveDialog({
+      title: 'Export soloLeving backup',
+      defaultPath: `sololeving-backup-${toLocalDateKey(new Date())}.db`,
+      filters: [{ name: 'soloLeving backup', extensions: ['db'] }]
+    })
+    if (result.canceled || result.filePath === '') return null
+
+    const destination = result.filePath
+    await backup.backupService.exportToFile(backup.dbHolder.get(), destination)
+    return {
+      path: destination,
+      sizeBytes: backup.backupService.fileSizeBytes(destination)
+    }
+  })
+
+  ipcMain.handle(IPC_CHANNELS.BackupImport, async (): Promise<BackupImportResult | null> => {
+    const result = await dialog.showOpenDialog({
+      title: 'Restore soloLeving backup',
+      filters: [{ name: 'soloLeving backup', extensions: ['db'] }],
+      properties: ['openFile']
+    })
+    if (result.canceled || result.filePaths.length === 0) return null
+
+    const backupPath = result.filePaths[0]
+    if (backupPath === undefined) return null
+
+    // Validation happens before any live data is touched; failures throw a
+    // ServiceError whose message the renderer displays.
+    backup.backupService.validateBackupFile(backupPath)
+    const swapResult = backup.backupService.swapInBackupFile(backup.dbHolder.get(), backupPath)
+    const migrationsApplied = backup.afterRestore()
+    void swapResult
+    return { migrationsApplied }
+  })
 
   ipcMain.handle(IPC_CHANNELS.SettingsGet, (_event, key: string) => {
     validateSettingsKey(key)

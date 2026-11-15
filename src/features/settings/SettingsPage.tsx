@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { useThemeStore, type ThemeMode } from '@/stores/theme-store'
 import { cn } from '@/utils/cn'
 import type { AppInfo } from '@shared/types'
@@ -261,6 +262,15 @@ export function SettingsPage(): React.JSX.Element {
       </Card>
 
       <Card className="mb-4">
+        <h2 className="mb-1 text-sm font-semibold text-foreground">Backup &amp; restore</h2>
+        <p className="mb-3 text-xs text-muted">
+          Export saves a complete, consistent snapshot of all your data. Restore
+          replaces everything with the contents of a backup file.
+        </p>
+        <BackupRow />
+      </Card>
+
+      <Card className="mb-4">
         <h2 className="mb-1 text-sm font-semibold text-foreground">Application</h2>
         <SettingRow label="Version">
           <span className="text-sm text-muted">{appInfo ? `v${appInfo.version}` : '…'}</span>
@@ -276,7 +286,7 @@ export function SettingsPage(): React.JSX.Element {
       <Card>
         <h2 className="mb-1 text-sm font-semibold text-foreground">Coming in later phases</h2>
         <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-muted">
-          <li>Database backup and restore (Phase 7)</li>
+          <li>Automatic scheduled backups</li>
         </ul>
       </Card>
     </div>
@@ -304,6 +314,98 @@ function TestNotificationRow(): React.JSX.Element {
         </Button>
       </SettingRow>
       {error ? <p className="mt-1 text-xs text-danger">{error}</p> : null}
+    </>
+  )
+}
+
+/** Human-readable byte size (KB/MB). */
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+/** Export/restore actions with confirmation and honest result feedback. */
+function BackupRow(): React.JSX.Element {
+  const [busy, setBusy] = useState<'export' | 'import' | null>(null)
+  const [confirmRestore, setConfirmRestore] = useState(false)
+  const [message, setMessage] = useState<{ kind: 'success' | 'error'; text: string } | null>(null)
+
+  const runExport = (): void => {
+    setBusy('export')
+    setMessage(null)
+    window.soloLeving.backup
+      .export()
+      .then((result) => {
+        if (result) {
+          setMessage({ kind: 'success', text: `Backup saved to ${result.path} (${formatBytes(result.sizeBytes)})` })
+        }
+      })
+      .catch((cause: unknown) => {
+        setMessage({
+          kind: 'error',
+          text: cause instanceof Error ? cause.message : 'Could not create the backup'
+        })
+      })
+      .finally(() => setBusy(null))
+  }
+
+  const runRestore = (): void => {
+    setBusy('import')
+    setConfirmRestore(false)
+    setMessage(null)
+    window.soloLeving.backup
+      .import()
+      .then((result) => {
+        // The renderer reloads after a restore; this may never be seen.
+        if (result) {
+          const suffix = result.migrationsApplied > 0 ? ` (${result.migrationsApplied} update${result.migrationsApplied === 1 ? '' : 's'} applied)` : ''
+          setMessage({ kind: 'success', text: `Backup restored${suffix}` })
+        }
+      })
+      .catch((cause: unknown) => {
+        setMessage({
+          kind: 'error',
+          text: cause instanceof Error ? cause.message : 'Could not restore the backup'
+        })
+      })
+      .finally(() => setBusy(null))
+  }
+
+  return (
+    <>
+      <div className="flex gap-2">
+        <Button variant="secondary" size="sm" disabled={busy !== null} onClick={runExport}>
+          {busy === 'export' ? 'Exporting…' : 'Export backup'}
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          disabled={busy !== null}
+          onClick={() => setConfirmRestore(true)}
+        >
+          {busy === 'import' ? 'Restoring…' : 'Restore from backup'}
+        </Button>
+      </div>
+      {message ? (
+        <p
+          className={cn(
+            'mt-2 text-xs',
+            message.kind === 'success' ? 'text-primary' : 'text-danger'
+          )}
+        >
+          {message.text}
+        </p>
+      ) : null}
+      <ConfirmDialog
+        open={confirmRestore}
+        title="Restore from backup?"
+        message="Restoring replaces ALL current data with the contents of the backup file. Anything tracked since that backup was made will be lost. A safety copy of the current data is kept as sololeving.db.pre-restore."
+        confirmLabel="Restore data"
+        destructive
+        onConfirm={runRestore}
+        onCancel={() => setConfirmRestore(false)}
+      />
     </>
   )
 }

@@ -172,6 +172,22 @@ channels with these main-process-owned keys:
 | `notifications.lastFired` | local `YYYY-MM-DD` | — | written by the main process ONLY, never exposed in UI |
 | `window.closeToTray` | `'1'` / `'0'` | unset (off) | read by the main-window close handler |
 
+### Backup (Phase 7)
+
+| Method | Channel | Input | Returns |
+| --- | --- | --- | --- |
+| `backup.export()` | `backup:export` | none | `Promise<BackupExportResult \| null>` — save dialog, then an atomic snapshot via the online backup API; `null` when canceled |
+| `backup.import()` | `backup:import` | none | `Promise<BackupImportResult \| null>` — open dialog, validation, atomic swap + service rebuild + renderer reload; `null` when canceled |
+
+Notes:
+
+- `backup.import()` assumes the renderer ALREADY showed the destructive
+  confirmation (Settings ConfirmDialog). The main process validates the
+  file (integrity check, soloLeving tables, migration versions ≤ current
+  schema) and rejects with a user-readable `ServiceError` message.
+- A restore keeps a safety copy at `sololeving.db.pre-restore` and returns
+  `migrationsApplied` (missing migrations applied on reopen).
+
 ## Events (main → renderer)
 
 ### `tracking:snapshot-changed` (Phase 4)
