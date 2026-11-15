@@ -2,6 +2,31 @@
 
 All notable changes. Each entry links to its modification README.
 
+## 2026-11-15 (Phase 6)
+
+### Added
+- System tray: brand icon in the notification area; menu = Open soloLeving,
+  Show/Hide floating widget (state-aware label), Quit soloLeving (real exit
+  via a `quitting` flag). Left-click opens the main window.
+- Tray takes over `window-all-closed`: closing every window keeps the app
+  resident in the tray instead of exiting.
+- Close-to-tray behavior (Settings toggle, default off) — closing the main
+  window hides it when enabled.
+- Daily habit reminder: at most one Windows toast per day at a configurable
+  time (default 09:00), fired only when scheduled non-skipped habits are
+  still open; click opens the app; per-day idempotence via the settings
+  table. Honest fallback + "Send test" button with inline error feedback.
+- App icons: `scripts/generate-icons.mjs` (dependency-free PNG/ICO encoder)
+  generates `build/icon.ico` + `build/icon.png`; used by the tray, windows,
+  and shipped via `extraResources` for packaged builds.
+- 1 new IPC channel (`notifications:test`), documented in
+  `docs/ipc-contracts.md`.
+
+Documentation:
+- [System tray & daily notifications](docs/changes/2026-11-15-tray-notifications/README.md)
+
+---
+
 ## 2026-11-14 (Phase 5)
 
 ### Added

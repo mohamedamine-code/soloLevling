@@ -74,6 +74,10 @@ export interface SoloLevingApi {
     /** Focuses the main window, recreating it if it was closed. */
     openMain(): Promise<void>
   }
+  notifications: {
+    /** Shows an immediate test notification; rejects if notifications are unsupported. */
+    test(): Promise<void>
+  }
   settings: {
     get(key: string): Promise<string | null>
     set(key: string, value: string): Promise<void>

@@ -33,6 +33,7 @@ export const IPC_CHANNELS = {
   WidgetSetVisible: 'widget:set-visible',
   WidgetHide: 'widget:hide',
   WidgetOpenMain: 'widget:open-main',
+  NotificationsTest: 'notifications:test',
   SettingsGet: 'settings:get',
   SettingsSet: 'settings:set'
 } as const

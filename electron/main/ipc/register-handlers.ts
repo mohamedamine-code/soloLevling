@@ -14,6 +14,7 @@ import type { TrackingService } from '../services/tracking-service'
 import type { RoutineService } from '../services/routine-service'
 import type { SettingsRepository } from '../db/repositories/settings-repository'
 import { hideWidget, setWidgetVisible } from '../windows/widget-window'
+import { sendTestNotification } from '../notifications/reminder-service'
 
 export interface WidgetIpcDependencies {
   /** Focuses the main window, creating it first if it was closed. */
@@ -179,6 +180,8 @@ export function registerIpcHandlers(deps: IpcDependencies): void {
   })
   ipcMain.handle(IPC_CHANNELS.WidgetHide, () => hideWidget())
   ipcMain.handle(IPC_CHANNELS.WidgetOpenMain, () => widget.openMainWindow())
+
+  ipcMain.handle(IPC_CHANNELS.NotificationsTest, () => sendTestNotification())
 
   ipcMain.handle(IPC_CHANNELS.SettingsGet, (_event, key: string) => {
     validateSettingsKey(key)

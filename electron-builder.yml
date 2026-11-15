@@ -5,6 +5,10 @@ directories:
 files:
   - out/**
   - package.json
+# Runtime icon for the tray and window title bars (dev reads build/icon.ico).
+extraResources:
+  - from: build/icon.ico
+    to: icon.ico
 asar: true
 win:
   target:

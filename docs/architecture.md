@@ -1,6 +1,6 @@
 # Architecture
 
-> Last updated: 2026-11-14 (Phase 5 routines + analytics/history)
+> Last updated: 2026-11-15 (Phase 6 tray + notifications)
 
 ## Overview
 
@@ -41,15 +41,20 @@ Owns every OS resource: windows, tray, notifications, and (later) the SQLite dat
 and all domain services.
 
 - `index.ts` — app entry, lifecycle, navigation guard for untrusted URLs.
-- `windows/main-window.ts` — BrowserWindow factory with hardened `webPreferences`.
+- `windows/main-window.ts` — BrowserWindow factory with hardened `webPreferences`
+  (+ close-to-tray interception, `focusOrCreateMainWindow()`).
 - `windows/widget-window.ts` — frameless transparent always-on-top widget window.
+- `tray/tray.ts` — system tray singleton (open main / toggle widget / real quit);
+  the tray keeps the app alive when all windows close.
+- `notifications/reminder-service.ts` — once-per-day habit reminder scheduler
+  reading its preferences from the settings table.
 - `db/` — connection, migration runner + registry, repositories (habits, tracking,
   routines, settings).
 - `services/` — `HabitService`, `TrackingService` (snapshots + range analytics),
   `RoutineService` — all validation/business rules.
 - `ipc/register-handlers.ts` — single registration point for all IPC handlers.
 
-Remaining planned submodules: `tray/`, `notifications/` (Phase 6), `lifecycle/`.
+Remaining planned submodules: `backup/` (Phase 7), `lifecycle/`.
 
 ### 2. Preload (`electron/preload/index.ts`)
 

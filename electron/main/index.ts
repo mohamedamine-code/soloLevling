@@ -1,6 +1,10 @@
-import { app, BrowserWindow, shell } from 'electron'
-import { createMainWindow } from './windows/main-window'
-import { showWidget, widgetVisibilitySetting } from './windows/widget-window'
+import { app, BrowserWindow } from 'electron'
+import {
+  createMainWindow,
+  focusOrCreateMainWindow,
+  type MainWindowOptions
+} from './windows/main-window'
+import { showWidget, widgetVisibilitySetting, setWidgetVisible, isWidgetVisible } from './windows/widget-window'
 import { initDatabase } from './db'
 import { HabitRepository } from './db/repositories/habit-repository'
 import { SettingsRepository } from './db/repositories/settings-repository'
@@ -10,17 +14,24 @@ import { HabitService } from './services/habit-service'
 import { TrackingService } from './services/tracking-service'
 import { RoutineService } from './services/routine-service'
 import { registerIpcHandlers } from './ipc/register-handlers'
+import { createTray, destroyTray, refreshTrayMenu } from './tray/tray'
+import { startReminderService } from './notifications/reminder-service'
 
 /**
  * soloLeving — Electron main process entry point.
  *
  * Responsibilities are split across modules:
- * - windows/  : BrowserWindow factories (main window, later the floating widget)
- * - db/       : SQLite connection, migrations, repositories
- * - services/ : domain services (validation + business rules)
- * - ipc/      : IPC handler registration
+ * - windows/       : BrowserWindow factories (main window, floating widget)
+ * - tray/          : system tray (background resident + real exit)
+ * - notifications/ : daily reminder service
+ * - db/            : SQLite connection, migrations, repositories
+ * - services/      : domain services (validation + business rules)
+ * - ipc/           : IPC handler registration
  */
 app.setName('soloLeving')
+
+/** Set to true when the user quits via the tray, so close handlers let go. */
+let quitting = false
 
 app.whenReady().then(() => {
   // Database first: IPC handlers depend on the repositories.
@@ -33,6 +44,13 @@ app.whenReady().then(() => {
   const routineService = new RoutineService(habitRepository, routineRepository)
   const settings = new SettingsRepository(db)
 
+  const mainWindowOptions: MainWindowOptions = {
+    interceptClose: () => {
+      // Close-to-tray only while the app is not quitting (tray Quit lets go).
+      return !quitting && settings.get('window.closeToTray') === '1'
+    }
+  }
+
   registerIpcHandlers({
     habitService,
     trackingService,
@@ -41,37 +59,65 @@ app.whenReady().then(() => {
     widget: {
       // The widget's "open main window" button: focus or recreate the main window.
       openMainWindow: () => {
-        const existing = BrowserWindow.getAllWindows().find((w) => w.title === 'soloLeving')
-        if (existing && !existing.isDestroyed()) {
-          if (existing.isMinimized()) existing.restore()
-          existing.show()
-          existing.focus()
-          return
-        }
-        createMainWindow()
+        focusOrCreateMainWindow()
       }
     }
   })
-  createMainWindow()
+  createMainWindow(mainWindowOptions)
 
   // Widget last: it may present on top of the freshly created main window.
   if (widgetVisibilitySetting(settings)) {
     showWidget(settings)
   }
 
+  // Tray: makes the app a background resident and provides the real exit.
+  createTray({
+    openMainWindow: () => {
+      focusOrCreateMainWindow()
+    },
+    toggleWidget: () => {
+      setWidgetVisible(!isWidgetVisible(), settings)
+      refreshTrayMenu()
+    },
+    quit: () => {
+      quitting = true
+      app.quit()
+    }
+  })
+
+  // Daily habit reminders (Windows toasts), configured via the settings table.
+  startReminderService({
+    settings,
+    trackingService,
+    openMainWindow: () => {
+      focusOrCreateMainWindow()
+    }
+  })
+
   app.on('activate', () => {
     // macOS convention; harmless on Windows but keeps behavior correct if ported.
     if (BrowserWindow.getAllWindows().length === 0) {
-      createMainWindow()
+      createMainWindow(mainWindowOptions)
     }
   })
 })
 
-// Quit when all windows are closed (Windows). With the widget visible the app
-// intentionally keeps running (widget-only); the widget can reopen the main
-// window. Tray-based background behavior is planned for Phase 6.
+app.on('before-quit', () => {
+  quitting = true
+})
+
+app.on('will-quit', () => {
+  destroyTray()
+})
+
+// The tray keeps the app alive when every window is closed (e.g. the user
+// closed the main window while the widget is visible, or close-to-tray hid
+// it). Quitting happens explicitly via the tray menu (or app.quit()).
 app.on('window-all-closed', () => {
-  app.quit()
+  if (quitting) {
+    app.quit()
+  }
+  // Otherwise: stay resident in the tray.
 })
 
 // Prevent untrusted content from navigating the main window.
@@ -80,7 +126,6 @@ app.on('web-contents-created', (_event, contents) => {
     const isInternal = url.startsWith('file://') || url.startsWith('http://localhost')
     if (!isInternal) {
       event.preventDefault()
-      void shell.openExternal(url)
     }
   })
 })

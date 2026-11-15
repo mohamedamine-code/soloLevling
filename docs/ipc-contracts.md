@@ -156,6 +156,22 @@ HabitRangeStats[], totalDurationMinutes, averagePercent }`. Rules:
 | `widget.hide()` | `widget:hide` | none | `Promise<void>` — hides the widget without persisting (its own close button) |
 | `widget.openMain()` | `widget:open-main` | none | `Promise<void>` — focuses the main window, recreating it if closed |
 
+### Notifications (Phase 6)
+
+| Method | Channel | Input | Returns |
+| --- | --- | --- | --- |
+| `notifications.test()` | `notifications:test` | none | `Promise<void>` — shows a test toast immediately; rejects with "Notifications are not supported on this system" when unsupported |
+
+Reminder preferences use the existing generic `settings:get`/`settings:set`
+channels with these main-process-owned keys:
+
+| Key | Values | Default | Notes |
+| --- | --- | --- | --- |
+| `notifications.enabled` | `'1'` / `'0'` | unset (off) | read by the reminder scheduler |
+| `notifications.time` | `'HH:MM'` 24h local | `'09:00'` | invalid format → no fire |
+| `notifications.lastFired` | local `YYYY-MM-DD` | — | written by the main process ONLY, never exposed in UI |
+| `window.closeToTray` | `'1'` / `'0'` | unset (off) | read by the main-window close handler |
+
 ## Events (main → renderer)
 
 ### `tracking:snapshot-changed` (Phase 4)

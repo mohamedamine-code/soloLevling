@@ -4,17 +4,18 @@
 
 Its signature feature is a **compact floating desktop widget** that shows today's progress in real time — without opening the main application.
 
-> **Status:** Phases 0–5 done. The application launches with a complete navigable UI
+> **Status:** Phases 0–6 done. The application launches with a complete navigable UI
 > shell, light/dark themes, Electron security hardening, **SQLite persistence, full
 > habit management** (create/edit/archive/restore/delete/search/filter/reorder with
 > scheduling), **daily tracking** (boolean check-offs, quantity steppers, live
 > persisted timers, skip days, progress ring, schedule-aware streaks), **routines**
 > (reusable habit groups with a start-the-routine checklist), **range analytics**
 > (completion charts, per-habit streaks, consistency heatmap), **day-by-day
-> history**, **and the signature floating widget**: a compact always-on-top desktop
-> companion kept live-in-sync with the dashboard. Notifications and the system tray
-> are not implemented yet — see [docs/agent-handoff.md](docs/agent-handoff.md) for
-> the exact state.
+> history**, **the signature floating widget**: a compact always-on-top desktop
+> companion kept live-in-sync with the dashboard, and **the system tray with
+> daily habit reminders** (close-to-tray, once-per-day toast). Windows startup
+> and backup/restore are not implemented yet — see
+> [docs/agent-handoff.md](docs/agent-handoff.md) for the exact state.
 
 ## Main features
 

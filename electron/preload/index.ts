@@ -57,6 +57,9 @@ const api: SoloLevingApi = {
     hide: () => ipcRenderer.invoke(IPC_CHANNELS.WidgetHide),
     openMain: () => ipcRenderer.invoke(IPC_CHANNELS.WidgetOpenMain)
   },
+  notifications: {
+    test: () => ipcRenderer.invoke(IPC_CHANNELS.NotificationsTest)
+  },
   settings: {
     get: (key) => ipcRenderer.invoke(IPC_CHANNELS.SettingsGet, key),
     set: (key, value) => ipcRenderer.invoke(IPC_CHANNELS.SettingsSet, key, value)
