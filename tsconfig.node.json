@@ -25,5 +25,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["electron", "shared", "tests", "scripts", "electron.vite.config.ts", "vitest.config.mts"]
+  "include": ["electron", "shared", "tests", "scripts", "electron.vite.config.ts", "vitest.config.mts"],
+  "exclude": ["tests/component"]
 }
