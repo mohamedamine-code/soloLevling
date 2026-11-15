@@ -79,7 +79,6 @@ None — no half-finished work in the tree.
 | --- | --- | --- |
 | 7 | Tests + installer | e2e, icon assets DONE (build/icon.*), electron-builder polish, backup/restore |
 | — | Windows startup | `app.setLoginItemSettings` + Settings toggle (Phase 6 leftover) |
-| — | Hygiene | Analytics/History live-refresh; midnight rollover; validated external URL opening |
 
 ## Current Architecture
 
@@ -116,6 +115,7 @@ None — no half-finished work in the tree.
 
 ## Recent Modifications
 
+- [2026-11-15 — Hygiene fixes (live-refresh, rollover, URL validation)](../changes/2026-11-15-hygiene-fixes/README.md)
 - [2026-11-15 — System tray & daily notifications (Phase 6)](../changes/2026-11-15-tray-notifications/README.md)
 - [2026-11-14 — Routines, range analytics & history (Phase 5)](../changes/2026-11-14-routines-analytics/README.md)
 - [2026-11-14 — Floating progress widget (Phase 4)](../changes/2026-11-14-floating-widget/README.md)
@@ -134,8 +134,6 @@ None — no half-finished work in the tree.
   covers it, no setState in effects (use key-remounted components, e.g.
   `TimerDisplay`, `RoutineFormDialog`, `AnalyticsContent`, `HistoryContent`),
   no refs read during render.
-- Analytics does not live-refresh on tracking mutations yet (refreshes on range
-  change or page revisit).
 - Routine member ordering is selection order; drag-and-drop reorder inside the
   routine form is not implemented.
 - Timer running while the app window is closed keeps accruing (persisted), but the
@@ -159,8 +157,8 @@ npm run dev
 ## How to Test
 
 ```powershell
-npm.cmd run typecheck   # ✅ verified 2026-11-15 (Phase 6)
-npm.cmd run test        # ✅ 97/97 tests pass (verified 2026-11-15, Phase 6)
+npm.cmd run typecheck   # ✅ verified 2026-11-15 (hygiene)
+npm.cmd run test        # ✅ 100/100 tests pass (verified 2026-11-15, hygiene)
 npm.cmd run lint        # ✅ verified 2026-11-15 (Phase 6)
 npm.cmd run build       # ✅ verified 2026-11-15 (Phase 6)
 node scripts/generate-icons.mjs   # regenerate build/icon.ico + icon.png

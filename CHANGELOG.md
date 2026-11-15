@@ -2,6 +2,21 @@
 
 All notable changes. Each entry links to its modification README.
 
+## 2026-11-15 (Phase 6.x hygiene)
+
+### Fixed
+- Analytics and History now live-refresh from `tracking:snapshot-changed`
+  when tracking mutations affect their data (Today + widget already did).
+- Midnight rollover: shared `useTodayKey()` hook re-evaluates the local date
+  every 30s — long-running dashboard/widget sessions roll to the new day.
+- `shell.openExternal` is gated by `isSafeExternalUrl()` (http/https only)
+  in both `will-navigate` and the window-open handler; 3 new unit tests.
+
+Documentation:
+- [Hygiene fixes](docs/changes/2026-11-15-hygiene-fixes/README.md)
+
+---
+
 ## 2026-11-15 (Phase 6)
 
 ### Added

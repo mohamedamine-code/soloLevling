@@ -74,6 +74,15 @@ function AnalyticsContent({ rangeDays }: { rangeDays: RangeDays }): React.JSX.El
   const [analytics, setAnalytics] = useState<RangeAnalytics | null>(null)
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const [error, setError] = useState<string | null>(null)
+  const [refreshKey, setRefreshKey] = useState(0)
+
+  // Live refresh: any tracking mutation inside the viewed range re-fetches.
+  useEffect(() => {
+    const from = addDaysToKey(toLocalDateKey(new Date()), -(rangeDays - 1))
+    return window.soloLeving.tracking.onSnapshotChanged((snapshot) => {
+      if (snapshot.date >= from) setRefreshKey((key) => key + 1)
+    })
+  }, [rangeDays])
 
   useEffect(() => {
     let cancelled = false
@@ -94,7 +103,7 @@ function AnalyticsContent({ rangeDays }: { rangeDays: RangeDays }): React.JSX.El
     return () => {
       cancelled = true
     }
-  }, [rangeDays])
+  }, [rangeDays, refreshKey])
 
   if (status === 'error') {
     return <Card className="p-6 text-sm text-danger">{error}</Card>

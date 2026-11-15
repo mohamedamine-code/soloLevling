@@ -82,6 +82,14 @@ function HistoryContent({
   const [snapshot, setSnapshot] = useState<DaySnapshot | null>(null)
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const [error, setError] = useState<string | null>(null)
+  const [refreshKey, setRefreshKey] = useState(0)
+
+  // Live refresh: a mutation affecting the viewed day re-fetches it.
+  useEffect(() => {
+    return window.soloLeving.tracking.onSnapshotChanged((value) => {
+      if (value.date === selectedDate) setRefreshKey((key) => key + 1)
+    })
+  }, [selectedDate])
 
   useEffect(() => {
     let cancelled = false
@@ -100,7 +108,7 @@ function HistoryContent({
     return () => {
       cancelled = true
     }
-  }, [selectedDate])
+  }, [selectedDate, refreshKey])
 
   const isFuture = selectedDate > todayKey
   const isPast = selectedDate < todayKey

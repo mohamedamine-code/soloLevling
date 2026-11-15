@@ -5,6 +5,7 @@ import { quantityStep } from '@shared/domain/progress'
 import { toLocalDateKey } from '@shared/utils/date'
 import { CircularProgress } from '@/components/ui/CircularProgress'
 import { TimerDisplay } from '@/features/tracking/TimerDisplay'
+import { useTodayKey } from '@/utils/useTodayKey'
 import { cn } from '@/utils/cn'
 
 /**
@@ -14,7 +15,7 @@ import { cn } from '@/utils/cn'
  */
 
 export function WidgetApp(): React.JSX.Element {
-  const todayKey = toLocalDateKey(new Date())
+  const todayKey = useTodayKey()
   const [snapshot, setSnapshot] = useState<DaySnapshot | null>(null)
   const [failed, setFailed] = useState<string | null>(null)
 

@@ -1,9 +1,10 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, shell } from 'electron'
 import {
   createMainWindow,
   focusOrCreateMainWindow,
   type MainWindowOptions
 } from './windows/main-window'
+import { isSafeExternalUrl } from './windows/external-url'
 import { showWidget, widgetVisibilitySetting, setWidgetVisible, isWidgetVisible } from './windows/widget-window'
 import { initDatabase } from './db'
 import { HabitRepository } from './db/repositories/habit-repository'
@@ -120,12 +121,16 @@ app.on('window-all-closed', () => {
   // Otherwise: stay resident in the tray.
 })
 
-// Prevent untrusted content from navigating the main window.
+// Prevent untrusted content from navigating the main window. Internal URLs
+// (app bundle, dev server) are allowed; validated http(s) URLs are handed to
+// the OS browser; anything else is blocked outright (AGENTS.md rule).
 app.on('web-contents-created', (_event, contents) => {
   contents.on('will-navigate', (event, url) => {
     const isInternal = url.startsWith('file://') || url.startsWith('http://localhost')
-    if (!isInternal) {
-      event.preventDefault()
+    if (isInternal) return
+    event.preventDefault()
+    if (isSafeExternalUrl(url)) {
+      void shell.openExternal(url)
     }
   })
 })

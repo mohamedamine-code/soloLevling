@@ -2,12 +2,12 @@ import { useEffect } from 'react'
 import { CalendarX2, Sparkles } from 'lucide-react'
 import type { HabitCategory } from '@shared/types'
 import { CATEGORY_LABELS } from '@shared/constants/categories'
-import { toLocalDateKey } from '@shared/utils/date'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Card } from '@/components/ui/Card'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { useHabitsStore } from '@/stores/habits-store'
 import { useTrackingStore } from '@/stores/tracking-store'
+import { useTodayKey } from '@/utils/useTodayKey'
 import { formatLongDate, getGreeting } from '@/utils/date'
 import { DaySummaryCard } from '../tracking/DaySummaryCard'
 import { HabitTodayRow } from '../tracking/HabitTodayRow'
@@ -16,7 +16,7 @@ const CATEGORY_ORDER = Object.keys(CATEGORY_LABELS) as HabitCategory[]
 
 export function TodayPage(): React.JSX.Element {
   const now = new Date()
-  const todayKey = toLocalDateKey(now)
+  const todayKey = useTodayKey()
 
   const { habits, status: habitsStatus, load } = useHabitsStore()
   const { snapshot, status, error, loadDay, clearError } = useTrackingStore()

@@ -1,6 +1,7 @@
 import { app, BrowserWindow, shell } from 'electron'
 import { join } from 'node:path'
 import { getAppIconPath } from './app-icon'
+import { isSafeExternalUrl } from './external-url'
 
 /**
  * Main application window.
@@ -53,8 +54,11 @@ export function createMainWindow(options?: MainWindowOptions): BrowserWindow {
   }
 
   // Open external links in the system browser instead of a new Electron window.
+  // Only validated http(s) URLs are ever handed to the OS (AGENTS.md rule).
   mainWindow.webContents.setWindowOpenHandler((details) => {
-    void shell.openExternal(details.url)
+    if (isSafeExternalUrl(details.url)) {
+      void shell.openExternal(details.url)
+    }
     return { action: 'deny' }
   })
 
